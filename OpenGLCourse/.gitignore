@@ -1,0 +1,15 @@
+# Ad Maiorem Dei Gloriam!
+build/*
+!build/.gitkeep
+
+*.exe
+*.dll
+*.out
+*.lib
+*.so
+*.a
+
+# Visual Studio Stuff
+*.tmp
+out/
+.vs/
