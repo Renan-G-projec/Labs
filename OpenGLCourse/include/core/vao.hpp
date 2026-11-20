@@ -7,6 +7,11 @@ class VAO
 {
 public:
     VAO();
+    VAO(const VAO& other) = delete;
+    VAO& operator=(const VAO&) = delete;
+
+    VAO(VAO&& other) noexcept;
+    VAO& operator=(VAO&& other) noexcept;
     ~VAO();
 
     void bind();

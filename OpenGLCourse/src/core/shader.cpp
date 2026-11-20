@@ -55,7 +55,7 @@ void Shader::attachFile(const std::string& file, GLenum type) const
         return;
     }
 
-    Log::log_debug("Success on loading and compiling " + file + "shader!");
+    Log::log_debug("Success on loading and compiling " + file + " shader!");
 
     glAttachShader(mId, shader);
     glDeleteShader(shader);

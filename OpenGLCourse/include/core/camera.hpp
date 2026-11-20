@@ -33,6 +33,7 @@ public:
     void lockWindow(GLFWwindow* window);
     void updateByInputs(GLFWwindow* window, float delta);
 
+    const glm::vec3 getPosition() const { return mPosition; }
     static glm::vec3 calculateOrientation(float yaw, float pitch);
 
 private:

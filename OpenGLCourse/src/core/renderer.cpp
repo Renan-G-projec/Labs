@@ -9,19 +9,25 @@
 
 void Renderer::clear() const
 {
+    glClearColor(0.2, 0.2, 0.2, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void Renderer::draw(const DrawCommand &command)
+void Renderer::draw(const DrawCommand& command)
 {
     mDrawCommands.emplace_back(command);
 }
 
-void Renderer::drawAll(const Camera& camera, const glm::vec3 ambientLight)
+void Renderer::drawInstanced(const InstancedDrawCommand& command)
+{
+    mInstancedDrawCommands.emplace_back(command);
+}
+
+void Renderer::drawAll(const PerspectiveCamera& camera, const glm::vec3 ambientLight)
 {
     sortDrawCommands();
 
-    if (mDrawCommands.empty()) return;
+    if (mDrawCommands.empty() && mInstancedDrawCommands.empty()) return;
 
     Shader *currentShader = nullptr;
     Mesh *currentMesh = nullptr;
@@ -29,17 +35,17 @@ void Renderer::drawAll(const Camera& camera, const glm::vec3 ambientLight)
 
     for (const DrawCommand &drawCommand : mDrawCommands)
     {
-        glm::mat4 modelMatrix{1.0f};
-        modelMatrix = glm::translate(modelMatrix, drawCommand.transform->position);
-        modelMatrix = glm::scale(modelMatrix, drawCommand.transform->scale);
+        glm::mat4 modelMatrix = drawCommand.transform->calculateMatrix();
 
         if (drawCommand.shader != currentShader)
         {
             currentShader = drawCommand.shader;
             currentShader->activate();
 
+            currentShader->setUniformMatrix(cameraMatrix, "uCamera");
             currentShader->setUniformVec3({ 10.0f, 10.0f, 2.0f}, "lightPos");
             currentShader->setUniformVec3(ambientLight, "ambientLight");
+            currentShader->setUniformVec3(camera.getPosition(), "viewerPos");
         }
 
         if (drawCommand.mesh != currentMesh)
@@ -48,11 +54,26 @@ void Renderer::drawAll(const Camera& camera, const glm::vec3 ambientLight)
             currentMesh->lazyBind();
         }
 
-        currentShader->setUniformMatrix(cameraMatrix * modelMatrix);
+        currentShader->setUniformMatrix(modelMatrix, "uModel");
         currentMesh->lazyRender();
     }
-    
 
+    for (const InstancedDrawCommand &drawCommand : mInstancedDrawCommands)
+    {
+        if (drawCommand.shader != currentShader)
+        {
+            currentShader = drawCommand.shader;
+            currentShader->activate();
+            currentShader->setUniformMatrix(cameraMatrix, "uCamera");
+            currentShader->setUniformVec3({ 10.0f, 10.0f, 2.0f}, "lightPos");
+            currentShader->setUniformVec3(ambientLight, "ambientLight");
+            currentShader->setUniformVec3(camera.getPosition(), "viewerPos");
+        }
+
+        drawCommand.mesh->renderInstanced();
+    }
+
+    mInstancedDrawCommands.clear();
     mDrawCommands.clear();
 }
 

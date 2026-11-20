@@ -9,6 +9,50 @@
 #include "core/log.hpp"
 #include "core/texture.hpp"
 
+Mesh createSphere(unsigned int radius)
+{
+    std::vector<Vertex> sphereVertices;
+    std::vector<GLuint> sphereIndices;
+
+
+    const unsigned int X_SEGMENTS = 32;
+    const unsigned int Y_SEGMENTS = 32;
+    const float PI = 3.14159265359f;
+
+    for (unsigned int y = 0; y <= Y_SEGMENTS; ++y) {
+        for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
+            float xSegment = (float)x / (float)X_SEGMENTS;
+            float ySegment = (float)y / (float)Y_SEGMENTS;
+            float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+            float yPos = std::cos(ySegment * PI);
+            float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+
+            sphereVertices.push_back({
+                xPos, yPos, zPos,    
+                xPos, yPos, zPos,   
+                xSegment, ySegment   
+            });
+        }
+    }
+
+    for (unsigned int y = 0; y < Y_SEGMENTS; ++y) {
+        for (unsigned int x = 0; x < X_SEGMENTS; ++x) {
+            GLuint first  = y * (X_SEGMENTS + 1) + x;
+            GLuint second = first + X_SEGMENTS + 1;
+
+            sphereIndices.push_back(first);
+            sphereIndices.push_back(second);
+            sphereIndices.push_back(first + 1);
+
+            sphereIndices.push_back(second);
+            sphereIndices.push_back(second + 1);
+            sphereIndices.push_back(first + 1);
+        }
+    }
+
+    return Mesh{sphereVertices, sphereIndices};
+}
+
 int main()
 {
     if (!glfwInit())
@@ -44,40 +88,25 @@ int main()
 
     glViewport(0, 0, 1280, 720);
 
-    Shader shader{"assets/shaders/phong.vert", "assets/shaders/phong.frag"};
-
-    const std::vector<Vertex> pyramidVertices = {
-        { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f },
-        { 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
-        { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f },
-        { 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f },
-        
-        { 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f },
-        { 1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f },
-        { 1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f },
-
-        { 0.0f, 1.0f, 0.0f, 0.0f, 0.7071f, -0.7071f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 1.0f, 0.0f, 0.7071f, -0.7071f, 0.0f, 1.0f },
-        { 1.0f, 1.0f, 0.0f, 0.0f, 0.7071f, -0.7071f, 1.0f, 0.0f },
-        { 1.0f, 0.0f, 1.0f, 0.0f, 0.7071f, -0.7071f, 1.0f, 1.0f },
-    };
-
-    const std::vector<GLuint> pyramidIndices = {
-        0, 2, 1,
-        1, 2, 3,
-
-        4, 6, 5,
-        5, 6, 7,
-
-        8, 10, 9,
-        9, 10, 11,
-    };
-
+    Shader shader{"assets/shaders/phong_instanced.vert", "assets/shaders/phong_instanced.frag"};
+    
     shader.activate();
-    Mesh pyramid(pyramidVertices, pyramidIndices);
-
-    TransformComponent pyramidTransform{};
+    
+    std::vector<TransformComponent> spherePositions;
+    spherePositions.reserve(2 * 2 * 2);
+    
+    for (int x = 0; x < 2; ++x) 
+    {
+        for (int y = 0; y < 2; ++y)
+        {
+            for (int z = 0; z < 2; ++z)
+            {
+                spherePositions.emplace_back(TransformComponent{glm::vec3{x * 160, y * 160, z * 160}, glm::vec3(16)});
+            }
+        }
+    }
+    
+    InstancedMesh spheres{createSphere(1), spherePositions};
 
     Texture texture;
 
@@ -85,22 +114,28 @@ int main()
     texture.activate();
 
     float previousTime = glfwGetTime();
+    float currentSpecularFactor = 32.0f;
 
     glEnable(GL_DEPTH_TEST);
     
     while (!glfwWindowShouldClose(window)) { 
         glfwPollEvents();
 
+        
         float currentTime = glfwGetTime();
         float dt = currentTime - previousTime;
         previousTime = currentTime;
+
+        if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) currentSpecularFactor += 32 * dt;
+        if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) currentSpecularFactor -= 32 * dt;
 
         cam.updateByInputs(window, dt);
         
         renderer.clear();
         shader.setUniformSampler2D(0);
+        shader.setUniformFloat(currentSpecularFactor, "specularFactor");
         
-        renderer.draw({&shader, &pyramid, &pyramidTransform});
+        renderer.drawInstanced({&shader, &spheres});
         renderer.drawAll(cam, {0.2f, 0.1f, 0.0f});
 
         glfwSwapBuffers(window);

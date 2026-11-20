@@ -24,13 +24,31 @@ public:
     void lazyRender();
     void lazyBind(); 
 
+    size_t getIndexCount() const { return mIndices.size(); }
+
 private:
-    VBO vbo;
-    EBO ebo;
-    VAO vao;
+    VBO mVbo;
+    EBO mEbo;
+    VAO mVao;
 
     std::vector<Vertex> mVertices;
     std::vector<GLuint> mIndices;
+};
+
+class InstancedMesh
+{
+public:
+    InstancedMesh(Mesh&& mesh, std::vector<TransformComponent> transforms);
+    InstancedMesh(std::vector<Vertex> vertices, std::vector<GLuint> indices, std::vector<TransformComponent> transforms);
+    InstancedMesh(const std::string& file, std::vector<TransformComponent> transforms);
+
+    void renderInstanced();
+
+private:
+    VBO mModelsVBO;
+
+    Mesh mMesh;
+    std::vector<glm::mat4> mModels;
 };
 
 #endif

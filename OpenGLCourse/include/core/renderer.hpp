@@ -16,15 +16,23 @@ struct DrawCommand final
     TransformComponent *transform;
 };
 
+struct InstancedDrawCommand final
+{
+    Shader *shader;
+    InstancedMesh *mesh;
+};
+
 class Renderer final
 {
 public:
     void clear() const;
     void draw(const DrawCommand&);
-    void drawAll(const Camera&, const glm::vec3 ambientLight = { 0.2f, 0.2f, 0.2f });
+    void drawInstanced(const InstancedDrawCommand&);
+    void drawAll(const PerspectiveCamera&, const glm::vec3 ambientLight = { 0.2f, 0.2f, 0.2f });
 
 private:
     std::vector<DrawCommand> mDrawCommands;
+    std::vector<InstancedDrawCommand> mInstancedDrawCommands;
 
     void sortDrawCommands();
 };

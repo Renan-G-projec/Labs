@@ -1,9 +1,27 @@
 // Ad Maiorem Dei Gloriam!
 #include "core/vao.hpp"
+#include <utility>
 
 VAO::VAO()
 {
     glGenVertexArrays(1, &mId);
+}
+
+
+VAO::VAO(VAO&& other) noexcept
+    : mId{std::exchange(other.mId, 0)}
+{
+}
+
+VAO& VAO::operator=(VAO&& other) noexcept
+{
+    if (this != &other)
+    {
+        glDeleteVertexArrays(1, &mId);
+        mId = std::exchange(other.mId, 0);
+    }
+
+    return *this;
 }
 
 VAO::~VAO()

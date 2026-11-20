@@ -1,5 +1,6 @@
 // Ad Maiorem Dei Gloriam!
 #include "core/vbo.hpp"
+#include <glm/mat4x4.hpp>
 
 VBO::VBO() 
 {
@@ -31,4 +32,10 @@ void VBO::sendData(const std::vector<Vertex>& data, GLenum usage)
 {
     bind();
     glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(Vertex), data.data(), usage);
+}
+
+void VBO::sendData(const std::vector<glm::mat4>& data, GLenum usage)
+{
+    bind();
+    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(glm::mat4), data.data(), usage);
 }

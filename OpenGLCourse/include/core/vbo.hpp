@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <glad/gl.h>
+#include <glm/mat4x4.hpp>
 #include "core/vertex.hpp"
 
 class VBO 
@@ -14,6 +15,7 @@ public:
 
     void sendData(const std::vector<GLfloat>& verticesData, GLenum usage = GL_STATIC_DRAW);
     void sendData(const std::vector<Vertex>& verticesData, GLenum usage = GL_STATIC_DRAW);
+    void sendData(const std::vector<glm::mat4>& matricesData, GLenum usage = GL_DYNAMIC_DRAW);
 
     void bind() const;
     static void unbind();

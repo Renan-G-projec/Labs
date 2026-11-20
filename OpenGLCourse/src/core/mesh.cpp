@@ -2,23 +2,25 @@
 #include "core/mesh.hpp" 
 #include "core/log.hpp"
 
+#include <algorithm>
+
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices)
     : mVertices(vertices), mIndices(indices)
 {
-    vao.bind();
-    vbo.bind();
-    ebo.bind();
+    mVao.bind();
+    mVbo.bind();
+    mEbo.bind();
 
-    vbo.sendData(vertices);
-    ebo.sendData(indices);
+    mVbo.sendData(vertices);
+    mEbo.sendData(indices);
 
-    vao.setVertexAttribute(0, 3, sizeof(Vertex)); // Position
-    vao.setVertexAttribute(1, 3, sizeof(Vertex), (void*)(offsetof(Vertex, normal))); // Normal
-    vao.setVertexAttribute(2, 2, sizeof(Vertex), (void*)(offsetof(Vertex, uv))); // UV
+    mVao.setVertexAttribute(0, 3, sizeof(Vertex)); // Position
+    mVao.setVertexAttribute(1, 3, sizeof(Vertex), (void*)(offsetof(Vertex, normal))); // Normal
+    mVao.setVertexAttribute(2, 2, sizeof(Vertex), (void*)(offsetof(Vertex, uv))); // UV
     
-    vao.unbind();
-    vbo.unbind();
-    ebo.unbind();
+    mVao.unbind();
+    mVbo.unbind();
+    mEbo.unbind();
 }
 
 Mesh::Mesh(const std::string& filename)
@@ -28,7 +30,7 @@ Mesh::Mesh(const std::string& filename)
 
 void Mesh::render()
 {
-    vao.bind();
+    mVao.bind();
     glDrawElements(GL_TRIANGLES, mIndices.size(), GL_UNSIGNED_INT, (void*)0);
 }
 
@@ -39,5 +41,34 @@ void Mesh::lazyRender()
 
 void Mesh::lazyBind()
 {
-    vao.bind();
+    mVao.bind();
+}
+
+InstancedMesh::InstancedMesh(Mesh&& mesh, std::vector<TransformComponent> transforms)
+    : mMesh{std::move(mesh)}
+{
+    mModels.reserve(transforms.size());
+    for (const auto& transform : transforms)
+    {
+        mModels.push_back(transform.calculateMatrix()); 
+    }
+
+    mMesh.lazyBind();
+    mModelsVBO.sendData(mModels);
+
+    for (uint8_t i = 0; i < 4; ++i)
+    {
+        glVertexAttribPointer(i + 3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), reinterpret_cast<void*>(i * sizeof(glm::vec4)));
+        glEnableVertexAttribArray(i + 3);
+        glVertexAttribDivisor(i + 3, 1);
+    }
+
+    glBindVertexArray(0);
+}
+
+void InstancedMesh::renderInstanced()
+{
+    mMesh.lazyBind();
+
+    glDrawElementsInstanced(GL_TRIANGLES, mMesh.getIndexCount(), GL_UNSIGNED_INT, (void*)0, mModels.size());
 }
