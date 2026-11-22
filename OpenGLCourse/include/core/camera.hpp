@@ -31,9 +31,15 @@ public:
     virtual void setViewportSize(glm::vec2 newViewportSize) override;
 
     void lockWindow(GLFWwindow* window);
-    void updateByInputs(GLFWwindow* window, float delta);
+    void updatePositionByInputs(GLFWwindow* window, float delta);
+    void updateRotationByMouse(GLFWwindow* window, float delta);
 
+    
+    void setPosition(const glm::vec3 position) { mPosition = position; }
     const glm::vec3 getPosition() const { return mPosition; }
+    
+    const glm::vec3 getRight() const { return glm::cross(getOrientation(), mUp); }
+    const glm::vec3 getOrientation() const { return calculateOrientation(mYaw, mPitch); }
     static glm::vec3 calculateOrientation(float yaw, float pitch);
 
 private:

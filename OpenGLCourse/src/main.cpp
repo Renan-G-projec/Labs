@@ -9,49 +9,6 @@
 #include "core/log.hpp"
 #include "core/texture.hpp"
 
-Mesh createSphere(unsigned int radius)
-{
-    std::vector<Vertex> sphereVertices;
-    std::vector<GLuint> sphereIndices;
-
-
-    const unsigned int X_SEGMENTS = 8;
-    const unsigned int Y_SEGMENTS = 8;
-    const float PI = 3.14159265359f;
-
-    for (unsigned int y = 0; y <= Y_SEGMENTS; ++y) {
-        for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
-            float xSegment = (float)x / (float)X_SEGMENTS;
-            float ySegment = (float)y / (float)Y_SEGMENTS;
-            float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI) * radius;
-            float yPos = std::cos(ySegment * PI) * radius;
-            float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI) * radius;
-
-            sphereVertices.push_back({
-                xPos, yPos, zPos,    
-                xPos, yPos, zPos,   
-                xSegment, ySegment   
-            });
-        }
-    }
-
-    for (unsigned int y = 0; y < Y_SEGMENTS; ++y) {
-        for (unsigned int x = 0; x < X_SEGMENTS; ++x) {
-            GLuint first  = y * (X_SEGMENTS + 1) + x;
-            GLuint second = first + X_SEGMENTS + 1;
-
-            sphereIndices.push_back(first);
-            sphereIndices.push_back(second);
-            sphereIndices.push_back(first + 1);
-
-            sphereIndices.push_back(second);
-            sphereIndices.push_back(second + 1);
-            sphereIndices.push_back(first + 1);
-        }
-    }
-
-    return Mesh{sphereVertices, sphereIndices};
-}
 
 int main()
 {
@@ -69,8 +26,11 @@ int main()
 
     Renderer renderer;
 
-    Scene scene = {{1.0f, 1.0f, 1.0f}, 0.1f};
-    scene.pointLight.position = {0.0f, 2.0f, 2.0f};
+    Scene scene{};
+    scene.directionalLight.direction = glm::normalize(glm::vec3{0.0f, -1.0f, 100.0f});
+
+    scene.pointLight.intensity = 0.0f;
+    scene.ambientLightIntensity = 0.55f;
 
     GLFWwindow* window = glfwCreateWindow(1280, 720, "OpenGL Course", NULL, NULL);
     if (!window)
@@ -95,13 +55,20 @@ int main()
     shader.activate();
 
     Texture texture;
+    texture.setWrap(GL_REPEAT, GL_REPEAT);
+    texture.setFilters(GL_LINEAR, GL_LINEAR);
     texture.load("assets/textures/wall.jpg"); 
     texture.activate();
 
-    Mesh sphere = createSphere(1);
-    TransformComponent sphereTransform{};
+    Mesh floorMesh{std::vector<Vertex>{{-1000.0f, 0.0f, -1000.0f, 0.0f, 100.0f, 0.0f, 0.0f, 0.0f}, {-1000.0f, 0.0f, 1000.0f, 0.0f, 1.0f, 0.0f, 0.0f, 100.0f}, {1000.0f, 0.0f, -1000.0f, 0.0f, 1.0f, 0.0f, 100.0f, 0.0f}, {1000.0f, 0.0f, 1000.0f, 0.0f, 1.0f, 0.0f, 100.0f, 100.0f}}, std::vector<GLuint>{0U, 1U, 2U, 1U, 2U, 3U}};
+    TransformComponent floorTransform{};
 
-    Material material{10.0, 32};
+    floorTransform.position.y = -10.0f;
+
+    Material material{2.0, 64.0};
+
+    glm::vec3 position = {0.0f, 0.0f, 0.0f};
+    float gravity = 10.0f;
 
     float previousTime = glfwGetTime();
 
@@ -109,21 +76,29 @@ int main()
     
     while (!glfwWindowShouldClose(window)) { 
         glfwPollEvents();
-
         
         float currentTime = glfwGetTime();
         float dt = currentTime - previousTime;
         previousTime = currentTime;
 
-        if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) scene.pointLight.position.y += 32 * dt;
-        if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) scene.pointLight.position.y -= 32 * dt;
+        position.y -= dt * gravity;
+        if (position.y <= floorTransform.position.y)
+        {
+            position.y = floorTransform.position.y;
+        }
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) position += cam.getOrientation() * 10.0f * dt;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) position -= cam.getOrientation() * 10.0f * dt;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) position += cam.getRight() * 10.0f * dt;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) position -= cam.getRight() * 10.0f * dt;
 
-        cam.updateByInputs(window, dt);
+        cam.setPosition(position + glm::vec3{0.0f, 10.0f, 0.0f});
+
+        cam.updateRotationByMouse(window, dt);
         
         renderer.clear({0.2f, 0.35f, 0.5f});
         shader.setUniformSampler2D(0);
         
-        renderer.draw({&shader, &sphere, &material, &sphereTransform});
+        renderer.draw({&shader, &floorMesh, &material, &floorTransform});
         renderer.drawAll(cam, scene);
 
         glfwSwapBuffers(window);

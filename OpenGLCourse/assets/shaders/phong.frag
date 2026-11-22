@@ -1,5 +1,6 @@
 // Ad Maiorem Dei Gloriam!
 #version 460 core
+#define MAX_LIGHTS 4
 
 in vec3 iPosition;
 in vec3 iNormal;

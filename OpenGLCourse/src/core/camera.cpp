@@ -25,9 +25,9 @@ void PerspectiveCamera::lockWindow(GLFWwindow* window)
     glfwGetCursorPos(window, &lastX, &lastY);
 }
 
-void PerspectiveCamera::updateByInputs(GLFWwindow* window, float dt)
+void PerspectiveCamera::updatePositionByInputs(GLFWwindow* window, float dt)
 {
-    const float sensibility = 0.01f;
+
     const float speed = 10.0f;
 
     glm::vec3 orientation = calculateOrientation(mYaw, mPitch);
@@ -37,6 +37,11 @@ void PerspectiveCamera::updateByInputs(GLFWwindow* window, float dt)
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) mPosition -= orientation * speed * dt;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) mPosition += right * speed * dt;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) mPosition -= right * speed * dt;
+}
+
+void PerspectiveCamera::updateRotationByMouse(GLFWwindow* window, float delta)
+{
+    const float sensibility = 0.005f;
 
     double mousePosX, mousePosY;
     glfwGetCursorPos(window, &mousePosX, &mousePosY);
@@ -54,7 +59,6 @@ void PerspectiveCamera::updateByInputs(GLFWwindow* window, float dt)
     constexpr float PI = 3.14159f;
     if (mPitch > PI / 2.0f - 0.14f) mPitch = PI / 2.0f - 0.14f;
     if (mPitch < -PI / 2.0f + 0.14f) mPitch = -PI / 2.0f + 0.14f;
-
 }
 
 glm::vec3 PerspectiveCamera::calculateOrientation(float yaw, float pitch)
