@@ -15,17 +15,17 @@ Mesh createSphere(unsigned int radius)
     std::vector<GLuint> sphereIndices;
 
 
-    const unsigned int X_SEGMENTS = 32;
-    const unsigned int Y_SEGMENTS = 32;
+    const unsigned int X_SEGMENTS = 8;
+    const unsigned int Y_SEGMENTS = 8;
     const float PI = 3.14159265359f;
 
     for (unsigned int y = 0; y <= Y_SEGMENTS; ++y) {
         for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
             float xSegment = (float)x / (float)X_SEGMENTS;
             float ySegment = (float)y / (float)Y_SEGMENTS;
-            float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
-            float yPos = std::cos(ySegment * PI);
-            float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+            float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI) * radius;
+            float yPos = std::cos(ySegment * PI) * radius;
+            float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI) * radius;
 
             sphereVertices.push_back({
                 xPos, yPos, zPos,    
@@ -69,6 +69,9 @@ int main()
 
     Renderer renderer;
 
+    Scene scene = {{1.0f, 1.0f, 1.0f}, 0.1f};
+    scene.pointLight.position = {0.0f, 2.0f, 2.0f};
+
     GLFWwindow* window = glfwCreateWindow(1280, 720, "OpenGL Course", NULL, NULL);
     if (!window)
     {
@@ -88,33 +91,19 @@ int main()
 
     glViewport(0, 0, 1280, 720);
 
-    Shader shader{"assets/shaders/phong_instanced.vert", "assets/shaders/phong_instanced.frag"};
-    
+    Shader shader{"assets/shaders/phong.vert", "assets/shaders/phong.frag"};
     shader.activate();
-    
-    std::vector<TransformComponent> spherePositions;
-    spherePositions.reserve(2 * 2 * 2);
-    
-    for (int x = 0; x < 2; ++x) 
-    {
-        for (int y = 0; y < 2; ++y)
-        {
-            for (int z = 0; z < 2; ++z)
-            {
-                spherePositions.emplace_back(TransformComponent{glm::vec3{x * 160, y * 160, z * 160}, glm::vec3(16)});
-            }
-        }
-    }
-    
-    InstancedMesh spheres{createSphere(1), spherePositions};
 
     Texture texture;
-
     texture.load("assets/textures/wall.jpg"); 
     texture.activate();
 
+    Mesh sphere = createSphere(1);
+    TransformComponent sphereTransform{};
+
+    Material material{10.0, 32};
+
     float previousTime = glfwGetTime();
-    float currentSpecularFactor = 32.0f;
 
     glEnable(GL_DEPTH_TEST);
     
@@ -126,17 +115,16 @@ int main()
         float dt = currentTime - previousTime;
         previousTime = currentTime;
 
-        if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) currentSpecularFactor += 32 * dt;
-        if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) currentSpecularFactor -= 32 * dt;
+        if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) scene.pointLight.position.y += 32 * dt;
+        if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) scene.pointLight.position.y -= 32 * dt;
 
         cam.updateByInputs(window, dt);
         
-        renderer.clear();
+        renderer.clear({0.2f, 0.35f, 0.5f});
         shader.setUniformSampler2D(0);
-        shader.setUniformFloat(currentSpecularFactor, "specularFactor");
         
-        renderer.drawInstanced({&shader, &spheres});
-        renderer.drawAll(cam, {0.2f, 0.1f, 0.0f});
+        renderer.draw({&shader, &sphere, &material, &sphereTransform});
+        renderer.drawAll(cam, scene);
 
         glfwSwapBuffers(window);
     }

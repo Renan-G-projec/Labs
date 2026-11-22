@@ -46,6 +46,7 @@ target_sources(OpenGLCourse PRIVATE
     src/core/camera.cpp
     src/core/shader.cpp
     src/core/texture.cpp
+    src/core/material.cpp
 
     external/stb/stb_image.cpp
     external/glad/src/gl.c

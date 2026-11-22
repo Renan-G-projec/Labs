@@ -7,13 +7,13 @@ layout (location = 2) in vec2 aUV;
 uniform mat4 uModel;
 uniform mat4 uCamera;
 
-out vec3 Position;
-out vec3 Normal;
-out vec2 UV;
+out vec3 iPosition;
+flat out vec3 iNormal;
+out vec2 iUV;
 
 void main() {
     gl_Position = uCamera * uModel * vec4(aPos, 1.0);
-    Position = (uModel * vec4(aPos, 1)).xyz;
-    Normal = aNorm;
-    UV = aUV;
+    iPosition = (uModel * vec4(aPos, 1)).xyz;
+    iNormal = aNorm;
+    iUV = aUV;
 }

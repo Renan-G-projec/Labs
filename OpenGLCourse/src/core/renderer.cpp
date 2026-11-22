@@ -7,9 +7,9 @@
 
 #include "core/renderer.hpp"
 
-void Renderer::clear() const
+void Renderer::clear(const glm::vec3 color) const
 {
-    glClearColor(0.2, 0.2, 0.2, 1.0);
+    glClearColor(color.x, color.y, color.z, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -23,7 +23,7 @@ void Renderer::drawInstanced(const InstancedDrawCommand& command)
     mInstancedDrawCommands.emplace_back(command);
 }
 
-void Renderer::drawAll(const PerspectiveCamera& camera, const glm::vec3 ambientLight)
+void Renderer::drawAll(const PerspectiveCamera& camera, const Scene& scene)
 {
     sortDrawCommands();
 
@@ -43,8 +43,21 @@ void Renderer::drawAll(const PerspectiveCamera& camera, const glm::vec3 ambientL
             currentShader->activate();
 
             currentShader->setUniformMatrix(cameraMatrix, "uCamera");
-            currentShader->setUniformVec3({ 10.0f, 10.0f, 2.0f}, "lightPos");
-            currentShader->setUniformVec3(ambientLight, "ambientLight");
+
+            currentShader->setUniformVec3(scene.directionalLight.direction, "uDirectionalLight.direction");
+            currentShader->setUniformVec3(scene.directionalLight.color, "uDirectionalLight.color");
+            currentShader->setUniformFloat(scene.ambientLightIntensity, "uDirectionalLight.intensity");
+
+            currentShader->setUniformVec3(scene.pointLight.color, "uPointLight.color");
+            currentShader->setUniformVec3(scene.pointLight.position, "uPointLight.position");
+            currentShader->setUniformFloat(scene.pointLight.ambientIntensity, "uPointLight.ambient_intensity");
+            currentShader->setUniformFloat(scene.pointLight.intensity, "uPointLight.intensity");
+            currentShader->setUniformFloat(scene.pointLight.quadratic, "uPointLight.quadratic");
+            currentShader->setUniformFloat(scene.pointLight.linear, "uPointLight.linear");
+            currentShader->setUniformFloat(scene.pointLight.constant, "uPointLight.constant");
+
+            currentShader->setUniformVec3(scene.ambientLightColor, "uAmbientLightColor");
+            currentShader->setUniformFloat(scene.ambientLightIntensity, "uAmbientLightIntensity");
             currentShader->setUniformVec3(camera.getPosition(), "viewerPos");
         }
 
@@ -54,6 +67,8 @@ void Renderer::drawAll(const PerspectiveCamera& camera, const glm::vec3 ambientL
             currentMesh->lazyBind();
         }
 
+        drawCommand.material->use(*currentShader);
+        
         currentShader->setUniformMatrix(modelMatrix, "uModel");
         currentMesh->lazyRender();
     }
@@ -64,10 +79,25 @@ void Renderer::drawAll(const PerspectiveCamera& camera, const glm::vec3 ambientL
         {
             currentShader = drawCommand.shader;
             currentShader->activate();
+
             currentShader->setUniformMatrix(cameraMatrix, "uCamera");
-            currentShader->setUniformVec3({ 10.0f, 10.0f, 2.0f}, "lightPos");
-            currentShader->setUniformVec3(ambientLight, "ambientLight");
+            
+            currentShader->setUniformVec3(scene.directionalLight.direction, "uDirectionalLight.direction");
+            currentShader->setUniformVec3(scene.directionalLight.color, "uDirectionalLight.color");
+            currentShader->setUniformFloat(scene.ambientLightIntensity, "uDirectionalLight.intensity");
+
+            currentShader->setUniformVec3(scene.pointLight.color, "uPointLight.color");
+            currentShader->setUniformVec3(scene.pointLight.position, "uPointLight.position");
+            currentShader->setUniformFloat(scene.pointLight.ambientIntensity, "uPointLight.ambient_intensity");
+            currentShader->setUniformFloat(scene.pointLight.intensity, "uPointLight.intensity");
+            currentShader->setUniformFloat(scene.pointLight.quadratic, "uPointLight.quadratic");
+            currentShader->setUniformFloat(scene.pointLight.linear, "uPointLight.linear");
+            currentShader->setUniformFloat(scene.pointLight.constant, "uPointLight.constant");
+
+            currentShader->setUniformFloat(scene.ambientLightIntensity, "uAmbientColorIntensity");
+            currentShader->setUniformVec3(scene.ambientLightColor, "uAmbientLightColor");
             currentShader->setUniformVec3(camera.getPosition(), "viewerPos");
+
         }
 
         drawCommand.mesh->renderInstanced();
